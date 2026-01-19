@@ -5,11 +5,12 @@ import { Item, ItemProps } from "./Item";
 import "./IzpalaceCenter.css";
 import { Line } from "./Line";
 import { fixEarthlyBranchIndex } from "iztro/lib/utils";
-import { Scope } from "iztro/lib/data/types";
+import { Language, Scope } from "iztro/lib/data/types";
 import { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope";
 import { normalizeDateStr, solar2lunar } from "lunar-lite";
-import { GenderName, kot, t } from "iztro/lib/i18n";
+import i18next, { GenderName, kot, t } from "iztro/lib/i18n";
 import { CHINESE_TIME } from "iztro/lib/data";
+import { toLocaleLunarStr } from "../locales";
 
 type IzpalaceCenterProps = {
   astrolabe?: FunctionalAstrolabe;
@@ -23,6 +24,7 @@ type IzpalaceCenterProps = {
   >;
   setHoroscopeHour?: React.Dispatch<React.SetStateAction<number | undefined>>;
   centerPalaceAlign?: boolean;
+  lang: Language;
 };
 
 export const IzpalaceCenter = ({
@@ -35,72 +37,75 @@ export const IzpalaceCenter = ({
   setHoroscopeDate,
   setHoroscopeHour,
   centerPalaceAlign,
+  lang,
 }: IzpalaceCenterProps) => {
   const records: ItemProps[] = useMemo(
     () => [
       {
-        title: "五行局：",
+        title: i18next.t("react:labelElementType"),
         content: astrolabe?.fiveElementsClass,
       },
       {
-        title: "年龄(虚岁)：",
-        content: `${horoscope?.age.nominalAge} 岁`,
+        title: i18next.t("react:labelNominalAge"),
+        content: i18next.t("react:age", { age: horoscope?.age.nominalAge ?? "" }),
       },
       {
-        title: "四柱：",
+        title: i18next.t("react:labelFourPillars"),
         content: astrolabe?.chineseDate,
       },
       {
-        title: "阳历：",
+        title: i18next.t("react:labelSolarCalendar"),
         content: astrolabe?.solarDate,
       },
       {
-        title: "农历：",
-        content: astrolabe?.lunarDate,
+        title: i18next.t("react:labelLunarCalendar"),
+        content: astrolabe?.lunarDate && astrolabe?.rawDates.lunarDate &&
+          toLocaleLunarStr(astrolabe.lunarDate, astrolabe.rawDates.lunarDate, lang),
       },
       {
-        title: "时辰：",
+        title: i18next.t("react:labelChineseHour"),
         content: `${astrolabe?.time}(${astrolabe?.timeRange})`,
       },
       {
-        title: "生肖：",
+        title: i18next.t("react:labelChineseZodiacSign"),
         content: astrolabe?.zodiac,
       },
       {
-        title: "星座：",
+        title: i18next.t("react:labelZodiacSign"),
         content: astrolabe?.sign,
       },
       {
-        title: "命主：",
+        title: i18next.t("react:labelSoulRuler"),
         content: astrolabe?.soul,
       },
       {
-        title: "身主：",
+        title: i18next.t("react:labelBodyRuler"),
         content: astrolabe?.body,
       },
       {
-        title: "命宫：",
+        title: i18next.t("react:labelSoulPalace"),
         content: astrolabe?.earthlyBranchOfSoulPalace,
       },
       {
-        title: "身宫：",
+        title: i18next.t("react:labelBodyPalace"),
         content: astrolabe?.earthlyBranchOfBodyPalace,
       },
     ],
-    [astrolabe, horoscope]
+    [astrolabe, horoscope, lang]
   );
 
   const horoDate = useMemo(() => {
     const dateStr = horoscopeDate ?? new Date();
     const [year, month, date] = normalizeDateStr(dateStr);
     const dt = new Date(year, month - 1, date);
-
+    const lunarDate = solar2lunar(dateStr)
+    const lunarStr = lunarDate.toString(true)
     return {
       solar: `${year}-${month}-${date}`,
-      lunar: solar2lunar(dateStr).toString(true),
+      lunar: toLocaleLunarStr(lunarStr, lunarDate, lang),
       prevDecadalDisabled: dt.setFullYear(dt.getFullYear() - 1),
     };
-  }, [horoscopeDate]);
+  }, [horoscopeDate, lang]);
 
   const onHoroscopeButtonClicked = (scope: Scope, value: number) => {
     if (!astrolabe?.solarDate) {
@@ -213,27 +218,27 @@ export const IzpalaceCenter = ({
         >
           {kot<GenderName>(astrolabe?.gender ?? "") === "male" ? "♂" : "♀"}
         </span>
-        <span>基本信息</span>
+        <span>{i18next.t("react:titleBasicInfo")}</span>
       </h3>
       <ul className="basic-info">
         {records.map((rec, idx) => (
           <Item key={idx} {...rec} />
         ))}
       </ul>
-      <h3 className="center-title">运限信息</h3>
+      <h3 className="center-title">{i18next.t("react:titleHoroscopeInfo")}</h3>
       <ul className="basic-info">
-        <Item title="农历：" content={horoDate.lunar} />
+        <Item title={i18next.t("react:labelLunarCalendar")} content={horoDate.lunar} />
         <div
           className={classNames("solar-horoscope", {
             "solar-horoscope-centralize": centerPalaceAlign,
           })}
         >
-          <Item title="阳历：" content={horoDate.solar} />
+          <Item title={i18next.t("react:labelSolarCalendar")} content={horoDate.solar} />
           <span
             className="today"
             onClick={() => setHoroscopeDate?.(new Date())}
           >
-            今
+            {i18next.t("react:buttonNow")}
           </span>
         </div>
       </ul>
@@ -244,7 +249,7 @@ export const IzpalaceCenter = ({
           })}
           onClick={() => onHoroscopeButtonClicked("yearly", -10)}
         >
-          ◀限
+          ◀{i18next.t("react:buttonDecade")}
         </span>
         <span
           className={classNames("center-button", {
@@ -252,7 +257,7 @@ export const IzpalaceCenter = ({
           })}
           onClick={() => onHoroscopeButtonClicked("yearly", -1)}
         >
-          ◀年
+          ◀{i18next.t("react:buttonYear")}
         </span>
         <span
           className={classNames("center-button", {
@@ -260,7 +265,7 @@ export const IzpalaceCenter = ({
           })}
           onClick={() => onHoroscopeButtonClicked("monthly", -1)}
         >
-          ◀月
+          ◀{i18next.t("react:buttonMonth")}
         </span>
         <span
           className={classNames("center-button", {
@@ -268,7 +273,7 @@ export const IzpalaceCenter = ({
           })}
           onClick={() => onHoroscopeButtonClicked("daily", -1)}
         >
-          ◀日
+          ◀{i18next.t("react:buttonDay")}
         </span>
         <span
           className={classNames("center-button", {
@@ -276,7 +281,7 @@ export const IzpalaceCenter = ({
           })}
           onClick={() => onHoroscopeButtonClicked("hourly", -1)}
         >
-          ◀时
+          ◀{i18next.t("react:buttonHour")}
         </span>
         <span className="center-horo-hour">
           {t(CHINESE_TIME[horoscopeHour])}
@@ -285,31 +290,31 @@ export const IzpalaceCenter = ({
           className={classNames("center-button")}
           onClick={() => onHoroscopeButtonClicked("hourly", 1)}
         >
-          时▶
+          {i18next.t("react:buttonHour")}▶
         </span>
         <span
           className={classNames("center-button")}
           onClick={() => onHoroscopeButtonClicked("daily", 1)}
         >
-          日▶
+          {i18next.t("react:buttonDay")}▶
         </span>
         <span
           className={classNames("center-button")}
           onClick={() => onHoroscopeButtonClicked("monthly", 1)}
         >
-          月▶
+          {i18next.t("react:buttonMonth")}▶
         </span>
         <span
           className={classNames("center-button")}
           onClick={() => onHoroscopeButtonClicked("yearly", 1)}
         >
-          年▶
+          {i18next.t("react:buttonYear")}▶
         </span>
         <span
           className={classNames("center-button")}
           onClick={() => onHoroscopeButtonClicked("yearly", 10)}
         >
-          限▶
+          {i18next.t("react:buttonDecade")}▶
         </span>
       </div>
       <a
